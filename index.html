@@ -86,7 +86,16 @@ html,body{height:100%;overflow:hidden;background:var(--parchment);font-family:'D
 
 /* task cards */
 .task-card{background:var(--white);margin:0 14px 10px;border-radius:var(--card-radius);border:1px solid var(--linen);overflow:hidden;transition:opacity .2s}
-.task-card.done{opacity:.45}
+.task-card.done{opacity:.5}
+.task-card.done .task-row{padding-top:10px;padding-bottom:10px}
+.task-card.done .task-name{font-size:13px;text-decoration:line-through;color:var(--pebble)}
+.task-card.done .task-badge{display:none}
+.task-card.done .sess-badge{display:none}
+.task-card.done .task-note{display:none}
+.task-card.done .info-btn{display:none}
+.task-card.done .menu-btn{display:none}
+.task-card.done .tick{width:22px;height:22px;border-width:1.5px}
+.easy-mode .task-card.done .task-name{font-size:15px}
 .task-row{display:flex;align-items:center;gap:14px;padding:var(--task-pad) 14px var(--task-pad) 16px;cursor:pointer;user-select:none}
 .tick{width:var(--tick-size);height:var(--tick-size);border-radius:50%;border:2px solid var(--linen);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 200ms ease}
 .tick.on{background:var(--forest);border-color:var(--forest)}
@@ -94,7 +103,6 @@ html,body{height:100%;overflow:hidden;background:var(--parchment);font-family:'D
 .tick.on svg{display:block}
 .task-info{flex:1;min-width:0}
 .task-name{font-size:var(--task-size);color:var(--stone);line-height:1.35;font-weight:500}
-.task-card.done .task-name{text-decoration:line-through;color:var(--pebble)}
 .task-badge{display:inline-block;margin-top:6px;font-size:var(--badge-size);font-weight:600;padding:3px 9px;border-radius:20px;letter-spacing:.02em}
 .cat-personal{background:#F3EFF9;color:#3C3489}
 .cat-nursery{background:#FFF0F5;color:#9B2C5A}
@@ -975,24 +983,38 @@ function printToday(){
   const unassigned=allToday.filter(t=>{const s=getEffectiveSession(t);return !s||s==='unset'});
 
   function taskRow(t){
-    return`<tr>
+    const isDone=state.checked.includes(t.id);
+    const checkbox=isDone
+      ?`<div style="width:18px;height:18px;background:#2D6A4F;border:1.5px solid #2D6A4F;border-radius:3px;margin-top:1px;display:flex;align-items:center;justify-content:center">
+          <svg width="11" height="11" viewBox="0 0 11 11"><polyline points="1.5,5.5 4,8.5 9.5,2" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>`
+      :`<div style="width:18px;height:18px;border:1.5px solid #9ca3af;border-radius:3px;margin-top:1px"></div>`;
+    const nameStyle=isDone
+      ?'text-decoration:line-through;color:#9B9589;'
+      :'color:#1a1a2e;';
+    return`<tr style="${isDone?'opacity:0.6;background:#fafaf9;':''}">
       <td style="width:32px;padding:10px 8px 10px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top">
-        <div style="width:18px;height:18px;border:1.5px solid #9ca3af;border-radius:3px;margin-top:1px"></div>
+        ${checkbox}
       </td>
-      <td style="padding:10px 12px 10px 4px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#1a1a2e;line-height:1.4;vertical-align:top">
-        ${t.name}${t.desc?`<div style="font-size:11px;color:#6b7280;margin-top:3px">${t.desc}</div>`:''}${t.note?`<div style="font-size:11px;color:#6b7280;margin-top:3px">${t.note}</div>`:''}
+      <td style="padding:10px 12px 10px 4px;border-bottom:1px solid #e5e7eb;font-size:13px;line-height:1.4;vertical-align:top;${nameStyle}">
+        ${t.name}${!isDone&&t.desc?`<div style="font-size:11px;color:#6b7280;margin-top:3px">${t.desc}</div>`:''}${!isDone&&t.note?`<div style="font-size:11px;color:#6b7280;margin-top:3px">${t.note}</div>`:''}
       </td>
     </tr>`;
   }
 
   function sectionBlock(label,emoji,colour,tasks){
     if(!tasks.length)return'';
+    const doneCnt=tasks.filter(t=>state.checked.includes(t.id)).length;
+    const remaining=tasks.length-doneCnt;
+    const countLabel=doneCnt>0
+      ?`${remaining} remaining · ${doneCnt} done`
+      :`${tasks.length} task${tasks.length!==1?'s':''}`;
     return`
       <div style="margin-bottom:24px">
         <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:${colour};border-radius:8px 8px 0 0;border:1px solid #e5e7eb;border-bottom:none">
           <span style="font-size:16px">${emoji}</span>
           <span style="font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:.02em">${label}</span>
-          <span style="margin-left:auto;font-size:12px;color:#6b7280">${tasks.length} task${tasks.length!==1?'s':''}</span>
+          <span style="margin-left:auto;font-size:12px;color:#6b7280">${countLabel}</span>
         </div>
         <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:0 0 8px 8px;overflow:hidden">
           ${tasks.map(taskRow).join('')}
