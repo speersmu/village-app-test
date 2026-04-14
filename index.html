@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Daily Care">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Daily Care</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  /* Village colour tokens */
+  --forest:#2D6A4F;
+  --deep-forest:#1B4332;
+  --sage:#52B788;
+  --mist:#E8F5EE;
+  --stone:#1C1917;
+  --driftwood:#78716C;
+  --pebble:#9B9589;
+  --parchment:#F7F5F2;
+  --linen:#EAE6E1;
+  --white:#FFFFFF;
+  --ember:#C05621;
+  --warm-white:#FEF3EC;
+
+  /* Mapped to app vars */
+  --bg:var(--white);
+  --bg2:var(--parchment);
+  --bg3:var(--linen);
+  --text:var(--stone);
+  --text2:var(--driftwood);
+  --text3:var(--pebble);
+  --border:var(--linen);
+  --border2:#D6D0C9;
+  --green:var(--forest);
+  --green-bg:var(--mist);
+  --green-dark:var(--deep-forest);
+  --navy:var(--stone);
+  --red:var(--ember);
+  --red-bg:var(--warm-white);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+  --task-size:16px;--task-pad:16px;--tick-size:32px;--badge-size:11px;
+  --card-radius:22px;--prog-h:8px;--sec-size:11px;
+}
+.easy-mode{
+  --task-size:22px;--task-pad:20px;--tick-size:50px;--badge-size:14px;
+  --card-radius:22px;--prog-h:14px;--sec-size:13px;
+}
+html,body{height:100%;overflow:hidden;background:var(--parchment);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+#app{height:100%;display:flex;flex-direction:column;max-width:430px;margin:0 auto;background:var(--parchment)}
+.topbar{background:var(--stone);border-bottom:none;padding:calc(var(--safe-top) + 14px) 16px 14px;flex-shrink:0;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.topbar-left{flex:1;min-width:0}
+.topbar-wordmark{font-size:20px;font-weight:800;color:var(--white);letter-spacing:-.02em;line-height:1}
+.topbar-tagline{font-size:11px;color:var(--sage);letter-spacing:.04em;margin-top:2px;font-weight:500}
+.topbar-date{font-size:12px;color:var(--pebble);margin-bottom:1px}
+.topbar-title{font-size:19px;font-weight:700;color:var(--white)}
+.easy-toggle{display:flex;align-items:center;gap:6px;flex-shrink:0;padding-bottom:2px}
+.easy-label{font-size:12px;color:var(--pebble);white-space:nowrap}
+.toggle-sw{width:40px;height:24px;border-radius:12px;background:rgba(255,255,255,.2);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.toggle-sw.on{background:var(--sage)}
+.toggle-sw::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s}
+.toggle-sw.on::after{transform:translateX(16px)}
+.screen{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:16px;display:none}
+.screen.active{display:block}
+
+/* progress */
+.progress-card{background:var(--white);margin:14px 14px 6px;border-radius:var(--card-radius);padding:20px;border:1px solid var(--linen)}
+.prog-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.prog-label{font-size:14px;color:var(--driftwood);font-weight:500}
+.prog-count{font-size:26px;font-weight:700;color:var(--stone)}
+.easy-mode .prog-count{font-size:32px}
+.prog-track{height:var(--prog-h);background:var(--linen);border-radius:5px;overflow:hidden}
+.prog-bar{height:100%;background:var(--forest);border-radius:5px;transition:width 500ms cubic-bezier(.4,0,.2,1)}
+.done-msg{display:none;margin-top:14px;padding:12px 16px;background:var(--mist);border-radius:12px;font-size:14px;font-weight:600;color:var(--deep-forest);text-align:center}
+.done-msg.show{display:block}
+.easy-mode .done-msg{font-size:18px;padding:16px}
+
+/* section labels */
+.sec-label{font-size:var(--sec-size);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pebble);padding:16px 16px 6px}
+
+/* task cards */
+.task-card{background:var(--white);margin:0 14px 10px;border-radius:var(--card-radius);border:1px solid var(--linen);overflow:hidden;transition:opacity .2s}
+.task-card.done{opacity:.45}
+.task-row{display:flex;align-items:center;gap:14px;padding:var(--task-pad) 14px var(--task-pad) 16px;cursor:pointer;user-select:none}
+.tick{width:var(--tick-size);height:var(--tick-size);border-radius:50%;border:2px solid var(--linen);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 200ms ease}
+.tick.on{background:var(--forest);border-color:var(--forest)}
+.tick svg{display:none}
+.tick.on svg{display:block}
+.task-info{flex:1;min-width:0}
+.task-name{font-size:var(--task-size);color:var(--stone);line-height:1.35;font-weight:500}
+.task-card.done .task-name{text-decoration:line-through;color:var(--pebble)}
+.task-badge{display:inline-block;margin-top:6px;font-size:var(--badge-size);font-weight:600;padding:3px 9px;border-radius:20px;letter-spacing:.02em}
+.cat-personal{background:#F3EFF9;color:#3C3489}
+.cat-nursery{background:#FFF0F5;color:#9B2C5A}
+.cat-kitchen{background:#E8F5E9;color:#27500A}
+.cat-medical{background:var(--warm-white);color:var(--ember)}
+.cat-home{background:#FFF3E0;color:#633806}
+.cat-garden{background:#E8F5E9;color:#1B5E20}
+.cat-admin{background:#E3F2FD;color:#0C447C}
+.cat-errands{background:#F3EFF9;color:#4A1554}
+.cat-christmas{background:#FFF8E7;color:#7B341E}
+.cat-extra{background:var(--linen);color:var(--driftwood)}
+.task-note{font-size:13px;color:var(--driftwood);padding:0 16px 14px 60px;line-height:1.5}
+.easy-mode .task-note{font-size:17px;padding-left:76px}
+.menu-btn{background:none;border:none;color:var(--pebble);cursor:pointer;padding:6px;font-size:22px;line-height:1;flex-shrink:0}
+
+/* pick screen */
+.pick-header{background:var(--white);border-bottom:1px solid var(--linen);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:10}
+.pick-header-title{font-size:17px;font-weight:700;color:var(--stone)}
+.pick-header-sub{font-size:13px;color:var(--driftwood);margin-top:2px}
+.pick-count-badge{background:var(--forest);color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap;letter-spacing:.02em}
+.cat-section{margin-bottom:4px}
+.cat-header{padding:14px 16px 6px;font-size:var(--sec-size);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pebble)}
+.pick-item{display:flex;align-items:center;gap:12px;padding:var(--task-pad) 16px;background:var(--white);border-bottom:1px solid var(--linen);cursor:pointer;user-select:none;transition:background .1s}
+.pick-item:active{background:var(--parchment)}
+.pick-item.selected{background:var(--mist)}
+.pick-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--linen);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 200ms ease}
+.easy-mode .pick-check{width:40px;height:40px}
+.pick-item.selected .pick-check{background:var(--forest);border-color:var(--forest)}
+.pick-check svg{display:none}
+.pick-item.selected .pick-check svg{display:block}
+.pick-item-info{flex:1;min-width:0}
+.pick-item-name{font-size:var(--task-size);color:var(--stone);line-height:1.35;font-weight:500}
+.pick-item.selected .pick-item-name{color:var(--deep-forest);font-weight:600}
+.pick-item-cat{font-size:var(--badge-size);color:var(--pebble);margin-top:3px}
+.pick-done-btn{position:fixed;bottom:calc(var(--safe-bot) + 68px);left:50%;transform:translateX(-50%);width:calc(100% - 28px);max-width:402px;z-index:20;pointer-events:none}
+.pick-done-btn button{width:100%;padding:16px;background:var(--forest);color:#fff;border:none;border-radius:18px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s;pointer-events:all;letter-spacing:.01em}
+.pick-done-btn button:active{opacity:.85}
+.easy-mode .pick-done-btn button{padding:20px;font-size:20px}
+
+/* info modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(28,25,23,.6);z-index:300;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--white);border-radius:24px 24px 0 0;padding:24px 20px calc(24px + var(--safe-bot));width:100%;max-width:430px;max-height:80vh;overflow-y:auto}
+.modal-title{font-size:17px;font-weight:700;color:var(--stone);margin-bottom:4px}
+.modal-cat{font-size:12px;color:var(--pebble);margin-bottom:16px;font-weight:500;letter-spacing:.03em;text-transform:uppercase}
+.modal-section-label{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--pebble);margin-bottom:6px}
+.modal-desc{font-size:15px;color:var(--driftwood);line-height:1.6;background:var(--parchment);border-radius:12px;padding:14px 16px;min-height:60px;white-space:pre-wrap;word-break:break-word;border:1px solid var(--linen)}
+.modal-session-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:13px;font-weight:600}
+.sess-lunchtime{background:#FFF8E7;color:#7B4A0A}
+.sess-afternoon{background:#EEF4FF;color:#1A3A7C}
+.sess-both{background:var(--mist);color:var(--deep-forest)}
+.sess-unset{background:var(--linen);color:var(--pebble)}
+.modal-close{width:100%;padding:15px;border:1px solid var(--linen);background:var(--parchment);border-radius:14px;font-size:15px;color:var(--driftwood);cursor:pointer;font-family:inherit;margin-top:16px;font-weight:500}
+/* info button on task card */
+.info-btn{background:none;border:none;color:var(--pebble);cursor:pointer;padding:6px 4px;font-size:16px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;transition:background .1s}
+.info-btn:active{background:var(--linen)}
+/* session badge on task */
+.sess-badge{display:inline-block;margin-top:4px;margin-left:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
+/* admin session select */
+.sess-select{padding:6px 10px;border:1px solid var(--linen);border-radius:8px;background:var(--white);color:var(--stone);font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0}
+/* log */
+.log-wrap{padding:14px}
+.log-card{background:var(--white);border-radius:var(--card-radius);border:1px solid var(--linen);padding:18px;margin-bottom:12px}
+.log-datestr{font-size:11px;color:var(--pebble);margin-bottom:4px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.log-summary{font-size:17px;font-weight:700;color:var(--stone);margin-bottom:12px}
+.log-prog{height:6px;background:var(--linen);border-radius:3px;overflow:hidden;margin-bottom:12px}
+.log-prog-fill{height:100%;background:var(--forest);border-radius:3px}
+.log-tags{display:flex;flex-wrap:wrap;gap:6px}
+.log-tag{font-size:12px;padding:3px 10px;border-radius:20px;background:var(--parchment);color:var(--driftwood);border:1px solid var(--linen)}
+
+/* admin */
+.admin-wrap{padding:14px}
+.card{background:var(--white);border-radius:var(--card-radius);border:1px solid var(--linen);padding:20px;margin-bottom:14px}
+.card h3{font-size:16px;font-weight:700;color:var(--stone);margin-bottom:14px}
+.fl{font-size:13px;color:var(--driftwood);margin-bottom:5px;margin-top:14px;display:block;font-weight:500}
+input[type=text],select,textarea{width:100%;padding:13px 14px;border:1px solid var(--linen);border-radius:14px;background:var(--white);color:var(--stone);font-size:16px;outline:none;font-family:inherit;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--forest);box-shadow:0 0 0 3px rgba(45,106,79,.12)}
+.btn{width:100%;padding:15px;border:none;border-radius:18px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;letter-spacing:.01em}
+.btn-primary{background:var(--stone);color:#fff}
+.btn-sec{background:var(--parchment);color:var(--driftwood);border:1px solid var(--linen)}
+.btn-danger{background:var(--warm-white);color:var(--ember)}
+.btn:active{opacity:.85}
+.flash{display:none;text-align:center;padding:12px;background:var(--mist);border-radius:12px;color:var(--deep-forest);font-size:14px;font-weight:600;margin-top:12px}
+.flash.show{display:block}
+.master-item{display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid var(--linen)}
+.master-item:last-child{border-bottom:none}
+.master-item-info{flex:1;min-width:0}
+.master-item-name{font-size:14px;color:var(--stone);line-height:1.35;font-weight:500}
+.master-item.inactive .master-item-name{color:var(--pebble);text-decoration:line-through}
+.master-freq{font-size:11px;color:var(--pebble);margin-top:2px}
+.tog-btn{padding:5px 11px;border:1px solid var(--linen);border-radius:8px;background:var(--parchment);color:var(--driftwood);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
+.tog-btn.on{background:var(--mist);color:var(--deep-forest);border-color:var(--sage)}
+.del-btn{background:none;border:none;color:var(--pebble);cursor:pointer;font-size:20px;padding:4px 6px;line-height:1;flex-shrink:0}
+.xmas-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+.xmas-label{font-size:14px;color:var(--stone);font-weight:500}
+.xmas-sub{font-size:12px;color:var(--pebble);margin-top:2px}
+.admin-add-form{display:flex;flex-direction:column;gap:10px}
+.admin-add-form input,.admin-add-form select{padding:11px 12px;font-size:15px}
+.pin-wrap{display:flex;flex-direction:column;align-items:center;padding:30px 20px}
+.pin-wrap h3{font-size:19px;font-weight:700;color:var(--stone);margin-bottom:6px}
+.pin-wrap p{font-size:14px;color:var(--driftwood);margin-bottom:24px;text-align:center;line-height:1.6}
+.pin-dots{display:flex;gap:12px;margin-bottom:20px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--linen);transition:background .15s}
+.pin-dot.on{background:var(--stone);border-color:var(--stone)}
+.pin-err{color:var(--ember);font-size:13px;min-height:18px;margin-bottom:14px;text-align:center}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:240px}
+.pin-key{padding:16px;border:1px solid var(--linen);border-radius:14px;background:var(--white);color:var(--stone);font-size:20px;font-weight:500;cursor:pointer;font-family:inherit}
+.pin-key:active{background:var(--parchment)}
+.pin-hint{font-size:12px;color:var(--pebble);margin-top:14px;text-align:center}
+.url-card{background:var(--white);border-radius:var(--card-radius);border:2px solid var(--forest);padding:20px}
+.url-card h2{font-size:18px;font-weight:700;color:var(--stone);margin-bottom:8px}
+.url-card p{font-size:14px;color:var(--driftwood);line-height:1.6;margin-bottom:16px}
+.step{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;font-size:14px;color:var(--driftwood);line-height:1.5}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--forest);color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:22px;flex-shrink:0}
+.loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:16px}
+.spinner{width:32px;height:32px;border:2.5px solid var(--linen);border-top-color:var(--forest);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-wrap p{font-size:15px;color:var(--pebble)}
+.empty{text-align:center;padding:50px 20px;color:var(--pebble);font-size:15px;line-height:1.6}
+.err-banner{background:var(--warm-white);color:var(--ember);padding:12px 16px;border-radius:14px;font-size:13px;margin:0 14px 10px;line-height:1.5;border:1px solid #F4C5A8}
+.fab-wrap{position:absolute;bottom:calc(var(--safe-bot) + 76px);right:20px}
+.fab{width:52px;height:52px;border-radius:50%;background:var(--stone);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.fab:active{transform:scale(.92)}
+.bottom-nav{background:var(--white);border-top:1px solid var(--linen);display:flex;flex-shrink:0;padding-bottom:var(--safe-bot)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0;border:none;background:none;cursor:pointer;gap:3px;color:var(--pebble);font-size:11px;font-weight:600;font-family:inherit;letter-spacing:.02em}
+.nav-btn.active{color:var(--forest)}
+.nav-btn svg{width:22px;height:22px}
+.sheet-bg{display:none;position:fixed;inset:0;background:rgba(28,25,23,.6);z-index:200;align-items:flex-end;justify-content:center}
+.sheet-bg.open{display:flex}
+.sheet{background:var(--white);border-radius:24px 24px 0 0;padding:22px 20px calc(22px + var(--safe-bot));width:100%;max-width:430px}
+.sheet-title{font-size:16px;font-weight:600;color:var(--stone);margin-bottom:14px;line-height:1.4}
+.sheet-opt{width:100%;padding:15px 16px;border:1px solid var(--linen);border-radius:14px;background:var(--parchment);text-align:left;font-size:15px;cursor:pointer;margin-bottom:8px;font-family:inherit;color:var(--stone);font-weight:500}
+.sheet-opt.red{color:var(--ember);background:var(--warm-white);border-color:#F4C5A8}
+.sheet-cancel{width:100%;padding:15px;border:none;background:none;font-size:15px;color:var(--pebble);cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-wordmark">Village</div>
+      <div class="topbar-tagline">your circle of care</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <button onclick="printToday()" id="print-btn" style="display:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:6px 10px;cursor:pointer;color:rgba(255,255,255,.85);font-size:12px;font-family:inherit;white-space:nowrap">
+        <svg width="14" height="14" viewBox="0 0 22 22" fill="none" style="vertical-align:middle;margin-right:3px"><path d="M6 8V3h10v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M6 16H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2" stroke="currentColor" stroke-width="1.6"/><rect x="6" y="13" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/></svg>Print
+      </button>
+      <div class="easy-toggle">
+        <span class="easy-label">Easy mode</span>
+        <button class="toggle-sw" id="easy-sw" onclick="toggleEasyMode()"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TODAY -->
+  <div class="screen active" id="scr-today">
+    <div id="today-inner"></div>
+  </div>
+
+  <!-- PICK TASKS -->
+  <div class="screen" id="scr-pick">
+    <div id="pick-inner"></div>
+  </div>
+
+  <!-- LOG -->
+  <div class="screen" id="scr-log">
+    <div class="log-wrap" id="log-content"></div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="screen" id="scr-admin">
+    <div id="admin-inner"></div>
+  </div>
+
+  <div class="fab-wrap" id="fab-wrap" style="display:none"></div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="nav-today" onclick="goScreen('today')">
+      <svg viewBox="0 0 22 22" fill="none"><rect x="3" y="4" width="16" height="15" rx="2.5" stroke="currentColor" stroke-width="1.6"/><line x1="3" y1="8.5" x2="19" y2="8.5" stroke="currentColor" stroke-width="1.6"/><line x1="7.5" y1="2.5" x2="7.5" y2="6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><line x1="14.5" y1="2.5" x2="14.5" y2="6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Today
+    </button>
+    <button class="nav-btn" id="nav-pick" onclick="goScreen('pick')">
+      <svg viewBox="0 0 22 22" fill="none"><rect x="3" y="3" width="16" height="16" rx="2.5" stroke="currentColor" stroke-width="1.6"/><polyline points="7,11 10,14 15,8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Pick tasks
+    </button>
+    <button class="nav-btn" id="nav-log" onclick="goScreen('log')">
+      <svg viewBox="0 0 22 22" fill="none"><path d="M6 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.6"/><line x1="7" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><line x1="7" y1="12.5" x2="15" y2="12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><line x1="7" y1="16" x2="11" y2="16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Log
+    </button>
+    <button class="nav-btn" id="nav-admin" onclick="goScreen('admin')">
+      <svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="7.5" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M5 18c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="16.5" cy="15" r="3" stroke="currentColor" stroke-width="1.4"/><line x1="16.5" y1="13.5" x2="16.5" y2="16.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="15" y1="15" x2="18" y2="15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Admin
+    </button>
+  </nav>
+</div>
+
+<div class="sheet-bg" id="sheet-bg">
+  <div class="sheet">
+    <div class="sheet-title" id="sheet-title"></div>
+    <button class="sheet-opt red" id="sheet-remove" onclick="sheetRemove()">Remove from today</button>
+    <button class="sheet-cancel" onclick="closeSheet()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="info-modal-bg">
+  <div class="modal" id="info-modal-content"></div>
+</div>
+
+<script>
+const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SMONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const SDAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const CAT_LABELS={personal:'Personal care',nursery:'Nursery / boys room',kitchen:'Kitchen / food',medical:'Medical',home:'Home / cleaning',garden:'Garden / outdoors',admin:'Admin / paperwork',errands:'Errands / outings',christmas:'Christmas',extra:'Extra'};
+const CAT_ORDER=['medical','personal','nursery','kitchen','home','garden','admin','errands','christmas','extra'];
+const FREQ_LABELS={daily:'Every day',weekdays:'Weekdays','mon-wed-fri':'Mon/Wed/Fri','tue-thu':'Tue/Thu','weekly-mon':'Weekly (Mon)','weekly-wed':'Weekly (Wed)','weekly-fri':'Weekly (Fri)','as-needed':'As needed'};
+
+function todayKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+function ls(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch{return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+const HARDCODED_API_URL='https://script.google.com/macros/s/AKfycbzPEzh55je9LQ3Ioocg7eUl1Wd6grPWWvBWpdZUYcm6QaMtoYxuPUJD9llct_0TM0N9Iw/exec';
+function getApiUrl(){return ls('api_url','')||HARDCODED_API_URL}
+function setApiUrl(u){lsSet('api_url',u)}
+function isAdminUnlocked(){return ls('admin_unlocked',false)}
+function setAdminUnlocked(v){lsSet('admin_unlocked',v)}
+function isEasyMode(){return ls('easy_mode',false)}
+
+// Fetch with timeout using Promise.race — avoids AbortSignal cloning issues on mobile
+function fetchWithTimeout(url,opts={},ms=12000){
+  const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Request timed out')),ms));
+  return Promise.race([fetch(url,opts),timeout]);
+}
+
+async function api(action,params={}){
+  const url=getApiUrl();if(!url)throw new Error('No API URL');
+  const qs=Object.entries(params).map(([k,v])=>'&'+k+'='+encodeURIComponent(v)).join('');
+  const r=await fetchWithTimeout(url+'?action='+action+qs);
+  const d=await r.json();if(d.error)throw new Error(d.error);return d;
+}
+async function apiPost(body){
+  const url=getApiUrl();if(!url)throw new Error('No API URL');
+  const r=await fetchWithTimeout(url,{method:'POST',body:JSON.stringify(body)});
+  const d=await r.json();if(d.error)throw new Error(d.error);return d;
+}
+
+let state={tasks:[],checked:[],pickedExtras:[],freeExtras:[],sessionOverrides:{},settings:{}};
+let sheetId=null,sheetIsExtra=false,pinBuffer='';
+
+function isScheduledToday(freq){
+  const d=new Date().getDay();
+  if(freq==='daily')return true;
+  if(freq==='weekdays')return d>=1&&d<=5;
+  if(freq==='mon-wed-fri')return[1,3,5].includes(d);
+  if(freq==='tue-thu')return[2,4].includes(d);
+  if(freq==='weekly-mon')return d===1;
+  if(freq==='weekly-wed')return d===3;
+  if(freq==='weekly-fri')return d===5;
+  return false;
+}
+function isNonDaily(freq){return freq!=='daily'&&freq!=='as-needed'&&freq!=='weekdays'&&freq!=='mon-wed-fri'&&freq!=='tue-thu'&&freq!=='weekly-mon'&&freq!=='weekly-wed'&&freq!=='weekly-fri'||freq==='as-needed'}
+function showFlash(id){const el=document.getElementById(id);if(el){el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500)}}
+function loading(){return'<div class="loading-wrap"><div class="spinner"></div><p>Loading...</p></div>'}
+
+function toggleEasyMode(){
+  const next=!isEasyMode();
+  lsSet('easy_mode',next);
+  document.getElementById('app').classList.toggle('easy-mode',next);
+  document.getElementById('easy-sw').classList.toggle('on',next);
+}
+
+function goScreen(name){
+  if(!getApiUrl()&&name!=='admin'){goScreen('admin');return}
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('scr-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  const titles={today:"Today's tasks",pick:'Pick tasks',log:'Daily log',admin:'Admin'};
+  document.getElementById('hdr-title').textContent=titles[name]||'';
+  const pb=document.getElementById('print-btn');
+  if(pb)pb.style.display=name==='today'?'block':'none';
+  if(name==='today'){
+    if(state.tasks.length===0)loadToday();   // first ever load — show spinner
+    else{renderToday();refreshToday();}      // already have data — render instantly, sync silently
+  }
+  if(name==='pick'){
+    if(state.tasks.length===0)loadToday().then(()=>renderPick());
+    else{renderPick();refreshToday().then(()=>renderPick());}
+  }
+  if(name==='log')loadLog();
+  if(name==='admin')renderAdmin();
+}
+
+// ── TODAY ─────────────────────────────────────────────────────
+// Full load with spinner — used on first open only
+async function loadToday(){
+  document.getElementById('today-inner').innerHTML=loading();
+  try{
+    const[tr,cr,er,sr]=await Promise.all([
+      api('getTasks'),
+      api('getChecked',{date:todayKey()}),
+      api('getExtras',{date:todayKey()}),
+      api('getSettings'),
+    ]);
+    state.tasks=tr.tasks||[];
+    state.checked=cr.ids||[];
+    const extras=er.extras||[];
+    const sentinel=extras.find(e=>e.id==='__picked__');
+    state.pickedExtras=sentinel?(JSON.parse(sentinel.name||'[]')).map(String):[];
+    const sessSentinel=extras.find(e=>e.id==='__session_overrides__');
+    state.sessionOverrides=sessSentinel?JSON.parse(sessSentinel.name||'{}'):{};
+    state.freeExtras=extras.filter(e=>e.id&&e.id.startsWith('f_'));
+    state.settings=sr.settings||{};
+    renderToday();
+  }catch(e){
+    document.getElementById('today-inner').innerHTML=`<div class="err-banner">Could not load tasks. Check your connection.<br><small>${e.message}</small></div>`;
+  }
+}
+
+// Silent background refresh — no spinner, only re-renders if data changed
+let _refreshing=false;
+async function refreshToday(){
+  if(_refreshing||!getApiUrl())return;
+  _refreshing=true;
+  try{
+    const[tr,cr,er,sr]=await Promise.all([
+      api('getTasks'),
+      api('getChecked',{date:todayKey()}),
+      api('getExtras',{date:todayKey()}),
+      api('getSettings'),
+    ]);
+    const newTasks=tr.tasks||[];
+    const newChecked=cr.ids||[];
+    const extras=er.extras||[];
+    const sentinel=extras.find(e=>e.id==='__picked__');
+    const newPicked=sentinel?(JSON.parse(sentinel.name||'[]')).map(String):[];
+    const sessSentinel=extras.find(e=>e.id==='__session_overrides__');
+    const newOverrides=sessSentinel?JSON.parse(sessSentinel.name||'{}'):{};
+    const newFree=extras.filter(e=>e.id&&e.id.startsWith('f_'));
+    const newSettings=sr.settings||{};
+
+    // Only update state + re-render if something actually changed
+    const changed=
+      JSON.stringify(newTasks)!==JSON.stringify(state.tasks)||
+      JSON.stringify(newChecked)!==JSON.stringify(state.checked)||
+      JSON.stringify(newPicked)!==JSON.stringify(state.pickedExtras)||
+      JSON.stringify(newOverrides)!==JSON.stringify(state.sessionOverrides)||
+      JSON.stringify(newFree)!==JSON.stringify(state.freeExtras)||
+      JSON.stringify(newSettings)!==JSON.stringify(state.settings);
+
+    if(changed){
+      state.tasks=newTasks;
+      state.checked=newChecked;
+      state.pickedExtras=newPicked;
+      state.sessionOverrides=newOverrides;
+      state.freeExtras=newFree;
+      state.settings=newSettings;
+      // Re-render whichever screen is currently active
+      const activeName=document.querySelector('.screen.active')?.id?.replace('scr-','');
+      if(activeName==='today')renderToday();
+      if(activeName==='pick')renderPick();
+      showSyncPulse();
+    }
+  }catch(e){
+    // Don't spam the console — just show a subtle offline indicator
+    const isAbort=e.name==='AbortError'||e.message==='Failed to fetch'||e.message.includes('AbortSignal');
+    if(!isAbort)console.warn('Background refresh failed:',e.message);
+    showOfflineDot();
+  }finally{
+    _refreshing=false;
+  }
+}
+
+// Green pulse = synced successfully, orange dot = last sync failed (offline/slow)
+function showSyncPulse(){
+  showStatusDot('#1D9E75');  // green
+}
+function showOfflineDot(){
+  showStatusDot('#C05621');  // ember/orange
+}
+function showStatusDot(colour){
+  let dot=document.getElementById('sync-dot');
+  if(!dot){
+    dot=document.createElement('span');
+    dot.id='sync-dot';
+    dot.style.cssText='position:fixed;top:calc(var(--safe-top,0px) + 14px);right:14px;width:7px;height:7px;border-radius:50%;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none';
+    document.body.appendChild(dot);
+  }
+  dot.style.background=colour;
+  dot.style.opacity='1';
+  setTimeout(()=>dot.style.opacity='0',2000);
+}
+
+// Poll every 30s while app is open
+setInterval(()=>{
+  if(getApiUrl())refreshToday();
+},30000);
+
+// Refresh when user returns to the tab after being away
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&getApiUrl())refreshToday();
+});
+
+function getPickedTaskObjects(){
+  return state.pickedExtras
+    .map(id=>state.tasks.find(t=>String(t.id)===String(id)))
+    .filter(Boolean);
+}
+
+function renderToday(){
+  const now=new Date();
+  const dateStr=DAYS[now.getDay()]+', '+now.getDate()+' '+MONTHS[now.getMonth()];
+  const xmasOn=state.settings.christmasMode==='true';
+  const active=state.tasks.filter(t=>t.active&&(t.cat!=='christmas'||xmasOn));
+  const dailyTasks=active.filter(t=>isScheduledToday(t.freq)&&t.freq!=='as-needed');
+  const pickedTasks=getPickedTaskObjects();
+  const allToday=[...dailyTasks,...pickedTasks,...state.freeExtras];
+  const total=allToday.length;
+  const done=allToday.filter(t=>state.checked.includes(t.id)).length;
+  const pct=total?Math.round(done/total*100):0;
+
+  let html=`
+  <div style="padding:18px 16px 4px">
+    <div style="font-size:13px;color:var(--pebble);font-weight:500">${dateStr}</div>
+    <div style="font-size:22px;font-weight:700;color:var(--stone);margin-top:2px">Today's tasks</div>
+  </div>
+  <div class="progress-card">
+    <div class="prog-row">
+      <span class="prog-label">${done === total && total > 0 ? 'All done!' : 'Progress'}</span>
+      <span class="prog-count">${done} <span style="font-size:16px;font-weight:500;color:var(--pebble)">/ ${total}</span></span>
+    </div>
+    <div class="prog-track"><div class="prog-bar" style="width:${pct}%"></div></div>
+    <div class="done-msg${total>0&&done===total?' show':''}">✓ All done for today — great work!</div>
+  </div>
+  <div style="text-align:right;padding:2px 16px 6px">
+    <button onclick="loadToday()" style="background:none;border:none;font-size:12px;color:var(--pebble);cursor:pointer;font-family:inherit;padding:4px 0">&#8635; Refresh</button>
+  </div>`;
+
+  // Daily tasks grouped by category
+  const dailyGroups={};
+  dailyTasks.forEach(t=>(dailyGroups[t.cat]=dailyGroups[t.cat]||[]).push(t));
+  let hasDailyContent=false;
+  CAT_ORDER.forEach(cat=>{
+    if(!dailyGroups[cat])return;
+    hasDailyContent=true;
+    html+=`<div class="sec-label">${CAT_LABELS[cat]||cat}</div>`;
+    dailyGroups[cat].forEach(t=>html+=taskCardHtml(t));
+  });
+  if(!hasDailyContent)html+=`<div class="empty" style="padding:24px 20px">No daily tasks scheduled today.</div>`;
+
+  // Picked extras
+  if(pickedTasks.length||state.freeExtras.length){
+    html+=`<div class="sec-label" style="color:var(--deep-forest)">Added for today</div>`;
+    const pickedGroups={};
+    pickedTasks.forEach(t=>(pickedGroups[t.cat]=pickedGroups[t.cat]||[]).push(t));
+    CAT_ORDER.forEach(cat=>{
+      if(!pickedGroups[cat])return;
+      pickedGroups[cat].forEach(t=>html+=taskCardHtml(t,true));
+    });
+    state.freeExtras.forEach(t=>html+=taskCardHtml(t,true));
+  }
+
+  // Prompt to pick if nothing added yet
+  if(!pickedTasks.length&&!state.freeExtras.length){
+    html+=`<div style="margin:8px 14px 0;padding:16px 18px;background:var(--white);border-radius:var(--card-radius);border:1px dashed var(--linen);text-align:center">
+      <div style="font-size:14px;color:var(--driftwood);margin-bottom:12px">Want to add extra tasks for today?</div>
+      <button onclick="goScreen('pick')" style="padding:10px 22px;background:var(--forest);color:#fff;border:none;border-radius:18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Pick tasks</button>
+    </div>`;
+  }
+
+  document.getElementById('today-inner').innerHTML=html;
+}
+
+// Returns today's override if set, otherwise the task's default session
+function getEffectiveSession(t){
+  return state.sessionOverrides[String(t.id)] || t.session || 'unset';
+}
+
+function taskCardHtml(t,isExtra=false){
+  const isDone=state.checked.includes(t.id);
+  const note=t.note?`<div class="task-note">${t.note}</div>`:'';
+  const menuBtn=isExtra
+    ?`<button class="menu-btn" onclick="event.stopPropagation();openSheet('${t.id}','${t.name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">&#8943;</button>`
+    :'';
+  const infoBtn=`<button class="info-btn" onclick="event.stopPropagation();openInfoModal('${t.id}')" title="More info">ⓘ</button>`;
+  const effSess=getEffectiveSession(t);
+  const sessBadge=effSess&&effSess!=='unset'?`<span class="sess-badge sess-${effSess}">${{lunchtime:'🕛 Lunchtime',afternoon:'🌤 Afternoon',both:'↕ Both'}[effSess]||''}</span>`:'';
+  return`<div class="task-card${isDone?' done':''}">
+    <div class="task-row" onclick="toggleTask('${t.id}')">
+      <div class="tick${isDone?' on':''}"><svg width="14" height="14" viewBox="0 0 14 14"><polyline points="2,7 5.5,10.5 12,3" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="task-info">
+        <div class="task-name">${t.name}</div>
+        <span class="task-badge cat-${t.cat||'extra'}">${CAT_LABELS[t.cat]||t.cat||'Extra'}</span>${sessBadge}
+      </div>${infoBtn}${menuBtn}
+    </div>${note}</div>`;
+}
+
+async function toggleTask(id){
+  const idx=state.checked.indexOf(id);
+  if(idx>-1)state.checked.splice(idx,1);else state.checked.push(id);
+  renderToday();
+  try{await apiPost({action:'setChecked',date:todayKey(),ids:state.checked});await saveLogEntry()}catch(e){console.error(e)}
+}
+
+async function saveLogEntry(){
+  const xmasOn=state.settings.christmasMode==='true';
+  const active=state.tasks.filter(t=>t.active&&(t.cat!=='christmas'||xmasOn));
+  const dailyTasks=active.filter(t=>isScheduledToday(t.freq)&&t.freq!=='as-needed');
+  const picked=getPickedTaskObjects();
+  const all=[...dailyTasks,...picked,...state.freeExtras];
+  await apiPost({action:'saveLog',entry:{date:todayKey(),done:all.filter(t=>state.checked.includes(t.id)).map(t=>t.name),total:all.length}});
+}
+
+// ── PICK TASKS ────────────────────────────────────────────────
+function renderPick(){
+  const xmasOn=state.settings.christmasMode==='true';
+  const pickable=state.tasks.filter(t=>
+    t.active&&
+    (t.freq==='as-needed'||!isScheduledToday(t.freq))&&
+    (t.cat!=='christmas'||xmasOn)
+  );
+
+  const pickedCount=state.pickedExtras.length;
+  const groups={};
+  pickable.forEach(t=>(groups[t.cat]=groups[t.cat]||[]).push(t));
+
+  let html=`<div class="pick-header">
+    <div>
+      <div class="pick-header-title">Pick extra tasks</div>
+      <div class="pick-header-sub">Tap to add or remove from today</div>
+    </div>
+    ${pickedCount>0?`<span class="pick-count-badge">${pickedCount} added</span>`:''}
+  </div>`;
+
+  let hasItems=false;
+  CAT_ORDER.forEach(cat=>{
+    if(!groups[cat])return;
+    hasItems=true;
+    html+=`<div class="cat-section"><div class="cat-header">${CAT_LABELS[cat]||cat}</div>`;
+    groups[cat].forEach(t=>{
+      const sel=state.pickedExtras.some(x=>String(x)===String(t.id));
+      html+=`<div class="pick-item${sel?' selected':''}" onclick="togglePick('${t.id}')">
+        <div class="pick-check"><svg width="12" height="12" viewBox="0 0 12 12"><polyline points="1.5,6 4.5,9.5 10.5,2.5" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="pick-item-info">
+          <div class="pick-item-name">${t.name}</div>
+          <div class="pick-item-cat">${CAT_LABELS[t.cat]||t.cat} · ${FREQ_LABELS[t.freq]||t.freq}</div>
+        </div>
+        <button class="info-btn" onclick="event.stopPropagation();openInfoModal('${t.id}')" title="More info">ⓘ</button>
+      </div>`;
+    });
+    html+='</div>';
+  });
+
+  if(!hasItems)html+=`<div class="empty">All tasks are already on today's list.</div>`;
+
+  // Free text add
+  html+=`<div style="padding:16px 16px 120px">
+    <div style="font-size:12px;font-weight:700;color:var(--pebble);margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase">Add a one-off task</div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="free-input" placeholder="Type a task..." maxlength="80" autocomplete="off" style="flex:1;padding:12px 14px;font-size:15px" onkeydown="if(event.key==='Enter')addFreeTask()">
+      <button onclick="addFreeTask()" style="padding:12px 18px;background:var(--forest);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">Add</button>
+    </div>
+  </div>`;
+
+  html+=`<div class="pick-done-btn"><button onclick="goScreen('today')">Done — go to today's list</button></div>`;
+
+  document.getElementById('pick-inner').innerHTML=html;
+}
+
+function togglePick(id){
+  const sid=String(id);
+  const idx=state.pickedExtras.findIndex(x=>String(x)===sid);
+  if(idx>-1)state.pickedExtras.splice(idx,1);else state.pickedExtras.push(sid);
+  renderPick();
+  saveExtras();
+}
+
+function addFreeTask(){
+  const inp=document.getElementById('free-input');
+  const name=inp&&inp.value.trim();
+  if(!name)return;
+  state.freeExtras.push({id:'f_'+Date.now(),name,cat:'extra',note:''});
+  if(inp)inp.value='';
+  renderPick();          // instant
+  saveExtras();          // background
+}
+
+let _saveExtrasTimer=null;
+function saveExtras(){
+  // Debounce -- only fire after 400ms of no further changes
+  clearTimeout(_saveExtrasTimer);
+  _saveExtrasTimer=setTimeout(async()=>{
+    const sentinel={id:'__picked__',name:JSON.stringify(state.pickedExtras),cat:'',note:''};
+    const sessSentinel={id:'__session_overrides__',name:JSON.stringify(state.sessionOverrides),cat:'',note:''};
+    const free=state.freeExtras.map(e=>({...e}));
+    try{await apiPost({action:'setExtras',date:todayKey(),extras:[sentinel,sessSentinel,...free]})}
+    catch(e){console.error('saveExtras failed:',e)}
+  },400);
+}
+
+// ── SHEET (remove extra from today) ───────────────────────────
+function openSheet(id,name){
+  sheetId=id;
+  document.getElementById('sheet-title').textContent=name;
+  document.getElementById('sheet-bg').classList.add('open');
+}
+function closeSheet(){document.getElementById('sheet-bg').classList.remove('open')}
+function sheetRemove(){
+  const isPicked=state.pickedExtras.includes(sheetId);
+  if(isPicked){state.pickedExtras=state.pickedExtras.filter(id=>id!==sheetId);}
+  else{state.freeExtras=state.freeExtras.filter(e=>e.id!==sheetId);}
+  closeSheet();
+  renderToday();         // instant
+  saveExtras();          // background
+}
+document.getElementById('sheet-bg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeSheet()});
+
+// ── LOG ───────────────────────────────────────────────────────
+async function loadLog(){
+  document.getElementById('log-content').innerHTML=loading();
+  try{const r=await api('getLog');renderLog(r.entries||[])}
+  catch(e){document.getElementById('log-content').innerHTML=`<div class="err-banner">Could not load log.<br><small>${e.message}</small></div>`}
+}
+function renderLog(entries){
+  if(!entries.length){document.getElementById('log-content').innerHTML='<div class="empty">No log entries yet.<br>Completed tasks appear here automatically.</div>';return}
+  let html='';
+  entries.forEach(entry=>{
+    const p=entry.date.split('-');
+    const d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
+    const pct=entry.total?Math.round(entry.done.length/entry.total*100):0;
+    const tags=entry.done.slice(0,5).map(n=>`<span class="log-tag">${n}</span>`).join('');
+    const more=entry.done.length>5?`<span class="log-tag">+${entry.done.length-5} more</span>`:'';
+    html+=`<div class="log-card">
+      <div class="log-datestr">${SDAYS[d.getDay()]} ${d.getDate()} ${SMONTHS[d.getMonth()]} ${d.getFullYear()}</div>
+      <div class="log-summary">${entry.done.length} of ${entry.total} tasks done — ${pct}%</div>
+      <div class="log-prog"><div class="log-prog-fill" style="width:${pct}%"></div></div>
+      <div class="log-tags">${tags}${more}</div>
+    </div>`;
+  });
+  document.getElementById('log-content').innerHTML=html;
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────
+function renderAdmin(){
+  if(!getApiUrl()){renderSetup();return}
+  if(!isAdminUnlocked()){renderPin();return}
+  renderAdminContent();
+}
+function renderSetup(){
+  document.getElementById('admin-inner').innerHTML=`
+  <div class="admin-wrap"><div class="url-card">
+    <h2>Connect to Google Sheets</h2>
+    <p>Paste your Apps Script web app URL below to connect.</p>
+    <div class="step"><span class="step-num">1</span>Open your Google Sheet → Extensions → Apps Script</div>
+    <div class="step"><span class="step-num">2</span>Paste the apps_script.js code, save, run setup()</div>
+    <div class="step"><span class="step-num">3</span>Deploy → New deployment → Web app → Access: Anyone → Copy URL</div>
+    <div class="step"><span class="step-num">4</span>Paste below and tap Connect</div>
+    <label class="fl" style="margin-top:16px">Apps Script URL</label>
+    <input type="text" id="url-input" placeholder="https://script.google.com/macros/s/..." autocomplete="off" autocapitalize="off" style="margin-bottom:12px">
+    <button class="btn btn-primary" style="margin-top:0" onclick="saveUrl()">Connect</button>
+    <div class="flash" id="url-flash">Connected! Loading your tasks...</div>
+  </div></div>`;
+}
+async function saveUrl(){
+  const val=document.getElementById('url-input').value.trim();
+  if(!val||!val.includes('script.google.com')){alert('Please paste a valid Apps Script URL.');return}
+  setApiUrl(val);
+  try{await api('getTasks');showFlash('url-flash');setTimeout(()=>goScreen('today'),1500)}
+  catch(e){setApiUrl('');alert('Could not connect. Check the URL and make sure access is set to "Anyone".\n\nError: '+e.message)}
+}
+function renderPin(){
+  pinBuffer='';
+  document.getElementById('admin-inner').innerHTML=`
+  <div class="admin-wrap"><div class="card"><div class="pin-wrap">
+    <h3>Admin area</h3>
+    <p>Enter your 4-digit PIN to manage tasks and settings.</p>
+    <div class="pin-dots"><div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div><div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div></div>
+    <div class="pin-err" id="pin-err"></div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinKey('1')">1</button><button class="pin-key" onclick="pinKey('2')">2</button><button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button><button class="pin-key" onclick="pinKey('5')">5</button><button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button><button class="pin-key" onclick="pinKey('8')">8</button><button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key" onclick="pinKey('del')" style="font-size:16px">⌫</button><button class="pin-key" onclick="pinKey('0')">0</button><button class="pin-key" onclick="pinKey('ok')" style="font-size:13px;font-weight:600">OK</button>
+    </div>
+    <div class="pin-hint">Default PIN: 1234</div>
+  </div></div></div>`;
+}
+function pinKey(k){
+  if(k==='del')pinBuffer=pinBuffer.slice(0,-1);
+  else if(k==='ok')checkPin();
+  else if(pinBuffer.length<4)pinBuffer+=k;
+  for(let i=0;i<4;i++){const el=document.getElementById('pd'+i);if(el)el.classList.toggle('on',i<pinBuffer.length)}
+  if(pinBuffer.length===4)setTimeout(checkPin,120);
+}
+async function checkPin(){
+  try{
+    const r=await apiPost({action:'checkPin',pin:pinBuffer});
+    if(r.ok){setAdminUnlocked(true);renderAdminContent()}
+    else{const el=document.getElementById('pin-err');if(el)el.textContent='Incorrect PIN.';pinBuffer='';for(let i=0;i<4;i++){const el=document.getElementById('pd'+i);if(el)el.classList.remove('on')}}
+  }catch(e){const el=document.getElementById('pin-err');if(el)el.textContent='Connection error.'}
+}
+async function renderAdminContent(){
+  document.getElementById('admin-inner').innerHTML=loading();
+  try{
+    const[tr,sr]=await Promise.all([api('getTasks'),api('getSettings')]);
+    state.tasks=tr.tasks||[];state.settings=sr.settings||{};
+  }catch(e){document.getElementById('admin-inner').innerHTML=`<div class="err-banner">Could not load. ${e.message}</div>`;return}
+  const xmasOn=state.settings.christmasMode==='true';
+  const groups={};
+  state.tasks.forEach(t=>(groups[t.cat]=groups[t.cat]||[]).push(t));
+  let listHtml='';
+  CAT_ORDER.forEach(cat=>{
+    if(!groups[cat])return;
+    listHtml+=`<div class="sec-label" style="padding-left:0;padding-top:8px">${CAT_LABELS[cat]||cat}</div>`;
+    groups[cat].forEach(t=>{
+      const sessLabels={lunchtime:'🕛 Lunchtime',afternoon:'🌤 Afternoon',both:'↕ Both',unset:''};
+      const sessBadgeHtml=t.session&&t.session!=='unset'?`<span class="task-badge sess-badge sess-${t.session}" style="margin-left:0;margin-top:3px">${sessLabels[t.session]}</span>`:'';
+      const descPreview=t.desc?`<div style="font-size:11px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px">${t.desc}</div>`:'';
+      listHtml+=`<div class="master-item${t.active?'':' inactive'}">
+        <div class="master-item-info" style="flex:1;min-width:0">
+          <div class="master-item-name">${t.name}</div>
+          <div class="master-freq">${FREQ_LABELS[t.freq]||t.freq}</div>
+          ${sessBadgeHtml}${descPreview}
+        </div>
+        <select class="sess-select" onchange="updateTaskSession('${t.id}',this.value)" title="Assign session">
+          <option value="unset"${(!t.session||t.session==='unset')?' selected':''}>Session</option>
+          <option value="lunchtime"${t.session==='lunchtime'?' selected':''}>🕛 Lunchtime</option>
+          <option value="afternoon"${t.session==='afternoon'?' selected':''}>🌤 Afternoon</option>
+          <option value="both"${t.session==='both'?' selected':''}>↕ Both</option>
+        </select>
+        <button class="tog-btn" style="padding:4px 8px;font-size:11px" onclick="openDescEdit('${t.id}')" title="Edit notes">📝</button>
+        <button class="tog-btn${t.active?' on':''}" onclick="toggleActive('${t.id}')">${t.active?'On':'Off'}</button>
+        <button class="del-btn" onclick="deleteTask('${t.id}')">×</button>
+      </div>`;
+    });
+  });
+  document.getElementById('admin-inner').innerHTML=`
+  <div class="admin-wrap">
+    <div class="card">
+      <h3>Seasonal settings</h3>
+      <div class="xmas-row">
+        <div><div class="xmas-label">Christmas mode</div><div class="xmas-sub">Shows Christmas tasks (Nov–Feb)</div></div>
+        <button class="toggle-sw${xmasOn?' on':''}" id="xmas-toggle" onclick="toggleXmas()"></button>
+      </div>
+    </div>
+    <div class="card"><h3>All tasks</h3>${listHtml||'<div style="color:var(--text3);font-size:14px">No tasks.</div>'}</div>
+    <div class="card">
+      <h3>Add recurring task</h3>
+      <div class="admin-add-form">
+        <input type="text" id="new-name" placeholder="Task name" autocomplete="off">
+        <select id="new-cat">
+          <option value="medical">Medical</option>
+          <option value="personal">Personal care</option>
+          <option value="nursery">Nursery / boys room</option>
+          <option value="kitchen">Kitchen / food</option>
+          <option value="home">Home / cleaning</option>
+          <option value="garden">Garden / outdoors</option>
+          <option value="admin">Admin / paperwork</option>
+          <option value="errands">Errands / outings</option>
+          <option value="christmas">Christmas</option>
+        </select>
+        <select id="new-freq">
+          <option value="daily">Every day</option>
+          <option value="weekdays">Weekdays (Mon–Fri)</option>
+          <option value="mon-wed-fri">Mon / Wed / Fri</option>
+          <option value="tue-thu">Tue / Thu</option>
+          <option value="weekly-mon">Weekly – Monday</option>
+          <option value="weekly-wed">Weekly – Wednesday</option>
+          <option value="weekly-fri">Weekly – Friday</option>
+          <option value="as-needed">As needed / pickable</option>
+        </select>
+        <button class="btn btn-primary" onclick="addTask()">Add task</button>
+        <div class="flash" id="task-flash">Task added!</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Settings</h3>
+      <label class="fl">Change admin PIN</label>
+      <input type="text" id="chg-old" placeholder="Current PIN" maxlength="4" inputmode="numeric" autocomplete="off" style="margin-bottom:8px">
+      <input type="text" id="chg-new" placeholder="New 4-digit PIN" maxlength="4" inputmode="numeric" autocomplete="off" style="margin-bottom:12px">
+      <button class="btn btn-primary" style="margin-bottom:8px" onclick="changePin()">Save new PIN</button>
+      <button class="btn btn-sec" onclick="adminLock()">Lock admin area</button>
+    </div>
+    <div class="card"><button class="btn btn-danger" onclick="resetToday()">Reset today's checklist</button></div>
+  </div>`;
+}
+async function toggleXmas(){
+  const next=String(!(state.settings.christmasMode==='true'));
+  try{await apiPost({action:'saveSetting',key:'christmasMode',value:next});state.settings.christmasMode=next;renderAdminContent()}
+  catch(e){alert('Error: '+e.message)}
+}
+async function toggleActive(id){
+  try{const r=await apiPost({action:'toggleTask',id});const t=state.tasks.find(t=>t.id===id);if(t)t.active=r.active;renderAdminContent()}
+  catch(e){alert('Error: '+e.message)}
+}
+async function deleteTask(id){
+  if(!confirm('Remove this task permanently?'))return;
+  try{await apiPost({action:'deleteTask',id});state.tasks=state.tasks.filter(t=>t.id!==id);renderAdminContent()}
+  catch(e){alert('Error: '+e.message)}
+}
+async function addTask(){
+  const name=document.getElementById('new-name').value.trim();if(!name)return;
+  const cat=document.getElementById('new-cat').value;
+  const freq=document.getElementById('new-freq').value;
+  try{
+    const r=await apiPost({action:'addTask',task:{name,cat,freq}});
+    state.tasks.push({id:r.id,name,cat,freq,active:true});
+    document.getElementById('new-name').value='';
+    showFlash('task-flash');setTimeout(()=>renderAdminContent(),1000);
+  }catch(e){alert('Error: '+e.message)}
+}
+async function changePin(){
+  const o=document.getElementById('chg-old').value,n=document.getElementById('chg-new').value;
+  try{const r=await apiPost({action:'changePin',oldPin:o,newPin:n});if(r.ok){alert('PIN updated.');document.getElementById('chg-old').value='';document.getElementById('chg-new').value='';}else alert(r.error||'Could not update.')}
+  catch(e){alert('Error: '+e.message)}
+}
+function adminLock(){setAdminUnlocked(false);renderPin()}
+
+async function updateTaskSession(id,session){
+  try{
+    await apiPost({action:'updateTask',id,field:'session',value:session});
+    const t=state.tasks.find(t=>String(t.id)===String(id));
+    if(t)t.session=session;
+  }catch(e){alert('Error saving session: '+e.message)}
+}
+
+function openDescEdit(id){
+  const t=state.tasks.find(t=>String(t.id)===String(id));
+  if(!t)return;
+  const modal=document.getElementById('info-modal-content');
+  modal.innerHTML=`
+    <div class="modal-title" style="margin-bottom:4px">Edit notes</div>
+    <div class="modal-cat" style="margin-bottom:12px">${t.name}</div>
+    <div class="modal-section-label">Notes &amp; instructions for carers</div>
+    <textarea id="desc-edit-input" rows="5" style="width:100%;padding:12px 14px;border:1px solid var(--border2);border-radius:10px;background:var(--bg);color:var(--text);font-size:15px;outline:none;font-family:inherit;resize:vertical;margin-top:6px;line-height:1.5">${t.desc||''}</textarea>
+    <div style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5">This will show when a carer taps ⓘ on the task card.</div>
+    <button class="btn btn-primary" style="margin-top:14px" onclick="saveDesc('${id}')">Save notes</button>
+    <button class="modal-close" onclick="closeInfoModal()">Cancel</button>`;
+  document.getElementById('info-modal-bg').classList.add('open');
+}
+
+async function saveDesc(id){
+  const val=document.getElementById('desc-edit-input').value.trim();
+  try{
+    await apiPost({action:'updateTask',id,field:'desc',value:val});
+    const t=state.tasks.find(t=>String(t.id)===String(id));
+    if(t)t.desc=val;
+    closeInfoModal();
+    renderAdminContent();
+  }catch(e){alert('Error saving notes: '+e.message)}
+}
+async function resetToday(){
+  if(!confirm('Reset all ticks and picked tasks for today?'))return;
+  try{
+    await Promise.all([apiPost({action:'setChecked',date:todayKey(),ids:[]}),apiPost({action:'setExtras',date:todayKey(),extras:[]})]);
+    state.checked=[];state.pickedExtras=[];state.freeExtras=[];state.sessionOverrides={};
+    alert('Today reset.');
+  }catch(e){alert('Error: '+e.message)}
+}
+
+
+// ── PRINT ─────────────────────────────────────────────────────
+function printToday(){
+  const now=new Date();
+  const dateStr=DAYS[now.getDay()]+' '+now.getDate()+' '+MONTHS[now.getMonth()]+' '+now.getFullYear();
+  const xmasOn=state.settings.christmasMode==='true';
+  const active=state.tasks.filter(t=>t.active&&(t.cat!=='christmas'||xmasOn));
+  const dailyTasks=active.filter(t=>isScheduledToday(t.freq)&&t.freq!=='as-needed');
+  const pickedTasks=getPickedTaskObjects();
+  const allToday=[...dailyTasks,...pickedTasks,...state.freeExtras];
+
+  if(!allToday.length){alert('No tasks to print for today.');return}
+
+  // Split into session buckets using today's effective session (override → default)
+  // 'both' tasks appear in both sections
+  const lunchtime=allToday.filter(t=>{const s=getEffectiveSession(t);return s==='lunchtime'||s==='both'});
+  const afternoon=allToday.filter(t=>{const s=getEffectiveSession(t);return s==='afternoon'||s==='both'});
+  const unassigned=allToday.filter(t=>{const s=getEffectiveSession(t);return !s||s==='unset'});
+
+  function taskRow(t){
+    return`<tr>
+      <td style="width:32px;padding:10px 8px 10px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top">
+        <div style="width:18px;height:18px;border:1.5px solid #9ca3af;border-radius:3px;margin-top:1px"></div>
+      </td>
+      <td style="padding:10px 12px 10px 4px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#1a1a2e;line-height:1.4;vertical-align:top">
+        ${t.name}${t.desc?`<div style="font-size:11px;color:#6b7280;margin-top:3px">${t.desc}</div>`:''}${t.note?`<div style="font-size:11px;color:#6b7280;margin-top:3px">${t.note}</div>`:''}
+      </td>
+    </tr>`;
+  }
+
+  function sectionBlock(label,emoji,colour,tasks){
+    if(!tasks.length)return'';
+    return`
+      <div style="margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:${colour};border-radius:8px 8px 0 0;border:1px solid #e5e7eb;border-bottom:none">
+          <span style="font-size:16px">${emoji}</span>
+          <span style="font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:.02em">${label}</span>
+          <span style="margin-left:auto;font-size:12px;color:#6b7280">${tasks.length} task${tasks.length!==1?'s':''}</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:0 0 8px 8px;overflow:hidden">
+          ${tasks.map(taskRow).join('')}
+        </table>
+        <div style="margin-top:10px;padding:8px 14px;border:1px solid #e5e7eb;border-radius:6px;font-size:11px;color:#9ca3af;display:flex;justify-content:space-between">
+          <span>Carer: ___________________________</span>
+          <span>Time: ____________</span>
+          <span>Signature: ___________________________</span>
+        </div>
+      </div>`;
+  }
+
+  const total=allToday.length;
+  const body=
+    sectionBlock('Lunchtime','🕛','#FFFBEB',lunchtime)+
+    sectionBlock('Afternoon','🌤','#EFF6FF',afternoon)+
+    (unassigned.length?sectionBlock('Unassigned','📋','#F3F4F6',unassigned):'');
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Daily Care Tasks — ${dateStr}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;color:#1a1a2e;padding:28px 32px}
+    @media print{.no-print{display:none!important}body{padding:16px 20px}@page{margin:1.2cm;size:A4}}
+    .back-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px}
+    .back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#f5f7fa;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;color:#1a1a2e;cursor:pointer;font-family:inherit;font-weight:500}
+    .back-btn:hover{background:#eef1f5}
+    .print-btn-bar{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#1a1a2e;border:none;border-radius:8px;font-size:13px;color:#fff;cursor:pointer;font-family:inherit;font-weight:500}
+  </style>
+  </head><body>
+  <div class="back-bar no-print">
+    <button class="back-btn" onclick="window.close()">← Back to app</button>
+    <button class="print-btn-bar" onclick="window.print()">🖨 Print / Save PDF</button>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #1a1a2e">
+    <div>
+      <div style="font-size:22px;font-weight:700;color:#1a1a2e">Daily Care Tasks</div>
+      <div style="font-size:14px;color:#6b7280;margin-top:4px">${dateStr}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:13px;color:#6b7280">${total} tasks today</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:4px">Printed ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}</div>
+    </div>
+  </div>
+  ${body}
+  <script>/* ready */<\/script>
+  </body></html>`;
+
+  const w=window.open('','_blank','width=800,height=900');
+  if(!w){alert('Please allow popups for this site to enable printing.');return}
+  w.document.write(html);
+  w.document.close();
+}
+
+// ── INFO MODAL ────────────────────────────────────────────────
+function openInfoModal(id){
+  const t=state.tasks.find(t=>String(t.id)===String(id));
+  if(!t)return;
+  renderInfoModal(id);
+  document.getElementById('info-modal-bg').classList.add('open');
+}
+
+function renderInfoModal(id){
+  const t=state.tasks.find(t=>String(t.id)===String(id));
+  if(!t)return;
+  const effSess=getEffectiveSession(t);
+  const isOverridden=!!state.sessionOverrides[String(t.id)];
+  const defaultSess=t.session||'unset';
+
+  const sessOptions=[
+    {val:'lunchtime',label:'Lunchtime',emoji:'🕛',cls:'sess-lunchtime'},
+    {val:'afternoon',label:'Afternoon',emoji:'🌤',cls:'sess-afternoon'},
+    {val:'both',label:'Both',emoji:'↕',cls:'sess-both'},
+    {val:'unset',label:'Unassigned',emoji:'○',cls:'sess-unset'},
+  ];
+
+  const toggleBtns=sessOptions.map(o=>`
+    <button onclick="setSessionOverride('${id}','${o.val}')"
+      style="flex:1;padding:10px 4px;border:2px solid ${effSess===o.val?'#1D9E75':'#e5e7eb'};border-radius:10px;background:${effSess===o.val?'#E1F5EE':'var(--bg2)'};cursor:pointer;font-family:inherit;font-size:12px;font-weight:${effSess===o.val?'700':'400'};color:${effSess===o.val?'#0F6E56':'var(--text2)'};transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:4px">
+      <span style="font-size:18px">${o.emoji}</span>
+      <span>${o.label}</span>
+    </button>`).join('');
+
+  const overrideNote=isOverridden
+    ?`<div style="font-size:11px;color:#0F6E56;background:#E1F5EE;border-radius:6px;padding:5px 10px;margin-top:8px;display:inline-block">Today's override — resets tomorrow</div>`
+    :(defaultSess!=='unset'?`<div style="font-size:11px;color:var(--text3);margin-top:6px">Default: ${{lunchtime:'🕛 Lunchtime',afternoon:'🌤 Afternoon',both:'↕ Both'}[defaultSess]||defaultSess}</div>`:'');
+
+  document.getElementById('info-modal-content').innerHTML=`
+    <div class="modal-title">${t.name}</div>
+    <div class="modal-cat">${CAT_LABELS[t.cat]||t.cat||'Extra'}</div>
+    <div style="height:16px"></div>
+    <div class="modal-section-label">Session</div>
+    <div style="display:flex;gap:8px;margin-top:8px">${toggleBtns}</div>
+    ${overrideNote}
+    ${t.desc?`<div style="height:16px"></div>
+    <div class="modal-section-label">Notes &amp; instructions</div>
+    <div class="modal-desc" style="margin-top:8px">${t.desc}</div>`:''}
+    <button class="modal-close" onclick="closeInfoModal()">Done</button>`;
+}
+
+async function setSessionOverride(id,session){
+  if(session==='unset'){
+    delete state.sessionOverrides[String(id)];
+  } else {
+    state.sessionOverrides[String(id)]=session;
+  }
+  renderInfoModal(id);  // re-render modal with new selection highlighted
+  renderToday();        // update badge on task card immediately
+  saveExtras();         // persist to Sheets in background
+}
+function closeInfoModal(){document.getElementById('info-modal-bg').classList.remove('open')}
+document.addEventListener('DOMContentLoaded',()=>{
+  const bg=document.getElementById('info-modal-bg');
+  if(bg)bg.addEventListener('click',e=>{if(e.target===bg)closeInfoModal()});
+});
+
+// ── INIT ──────────────────────────────────────────────────────
+const easyOn=isEasyMode();
+document.getElementById('app').classList.toggle('easy-mode',easyOn);
+document.getElementById('easy-sw').classList.toggle('on',easyOn);
+const now=new Date();
+document.getElementById('hdr-date').textContent=DAYS[now.getDay()]+', '+now.getDate()+' '+MONTHS[now.getMonth()];
+if(!getApiUrl())goScreen('admin');else goScreen('today');
+</script>
+</body>
+</html>
