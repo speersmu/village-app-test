@@ -429,7 +429,7 @@ let _lastWrite=0; // timestamp of last local write — blocks refresh for 5s aft
 function markWritten(){_lastWrite=Date.now();}
 async function refreshToday(){
   if(_refreshing||!getApiUrl())return;
-  if(Date.now()-_lastWrite<5000)return; // don't overwrite a recent local change
+  if(Date.now()-_lastWrite<8000)return; // don't overwrite a recent local change
   _refreshing=true;
   try{
     const[tr,cr,er,sr]=await Promise.all([
@@ -507,7 +507,10 @@ setInterval(()=>{
 
 // Refresh when user returns to the tab after being away
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'&&getApiUrl())refreshToday();
+  if(document.visibilityState==='visible'&&getApiUrl()){
+    // Delay refresh by 2s so any pending saves finish before we fetch from Sheets
+    setTimeout(()=>refreshToday(),2000);
+  }
 });
 
 function getPickedTaskObjects(){
@@ -1071,6 +1074,7 @@ function printToday(){
   </body></html>`;
 
   const w=window.open('','_blank','width=800,height=900');
+  markWritten(); // prevent visibility-change refresh from overwriting state when user returns
   if(!w){alert('Please allow popups for this site to enable printing.');return}
   w.document.write(html);
   w.document.close();
