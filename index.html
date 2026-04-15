@@ -424,8 +424,12 @@ async function loadToday(){
 
 // Silent background refresh — no spinner, only re-renders if data changed
 let _refreshing=false;
+let _lastWrite=0; // timestamp of last local write — blocks refresh for 5s after any change
+
+function markWritten(){_lastWrite=Date.now();}
 async function refreshToday(){
   if(_refreshing||!getApiUrl())return;
+  if(Date.now()-_lastWrite<5000)return; // don't overwrite a recent local change
   _refreshing=true;
   try{
     const[tr,cr,er,sr]=await Promise.all([
@@ -603,6 +607,7 @@ function taskCardHtml(t,isExtra=false){
 async function toggleTask(id){
   const idx=state.checked.indexOf(id);
   if(idx>-1)state.checked.splice(idx,1);else state.checked.push(id);
+  markWritten();
   renderToday();
   try{await apiPost({action:'setChecked',date:todayKey(),ids:state.checked});await saveLogEntry()}catch(e){console.error(e)}
 }
@@ -676,6 +681,7 @@ function togglePick(id){
   const sid=String(id);
   const idx=state.pickedExtras.findIndex(x=>String(x)===sid);
   if(idx>-1)state.pickedExtras.splice(idx,1);else state.pickedExtras.push(sid);
+  markWritten();
   renderPick();
   saveExtras();
 }
@@ -686,6 +692,7 @@ function addFreeTask(){
   if(!name)return;
   state.freeExtras.push({id:'f_'+Date.now(),name,cat:'extra',note:''});
   if(inp)inp.value='';
+  markWritten();
   renderPick();          // instant
   saveExtras();          // background
 }
@@ -1060,7 +1067,7 @@ function printToday(){
     </div>
   </div>
   ${body}
-  <script>/* ready */<\/script>
+  <script>window.onload=function(){window.print()}<\/script>
   </body></html>`;
 
   const w=window.open('','_blank','width=800,height=900');
@@ -1121,6 +1128,7 @@ async function setSessionOverride(id,session){
   } else {
     state.sessionOverrides[String(id)]=session;
   }
+  markWritten();
   renderInfoModal(id);  // re-render modal with new selection highlighted
   renderToday();        // update badge on task card immediately
   saveExtras();         // persist to Sheets in background
